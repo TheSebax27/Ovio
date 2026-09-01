@@ -26,6 +26,7 @@ src/
 ├── types/index.ts
 └── utils/
 supabase/migrations/001_initial_schema.sql
+supabase/migrations/002_finance_expanded.sql
 ```
 
 ## Convenciones
@@ -42,9 +43,10 @@ supabase/migrations/001_initial_schema.sql
 - ProtectedRoute redirige a /login si no autenticado, a /register si no tiene username
 
 ## Base de datos
-Tablas: profiles, finances, movies, events, journal, journal_images, places, subscriptions
+Tablas core: profiles, finances, movies, events, journal, journal_images, places, subscriptions
+Tablas finanzas: loans, loan_payments, savings_goals, savings_contributions, budgets, fixed_expenses, fixed_expense_payments
 Todas con RLS. Trigger auto-crea profile al signup.
-Migración en supabase/migrations/001_initial_schema.sql
+Migraciones en supabase/migrations/
 
 ## Variables de entorno
 ```
@@ -59,6 +61,6 @@ VITE_SUPABASE_ANON_KEY=
 
 ## Estado del proyecto
 - Sprint 1 (Fundación): COMPLETADO — layout, rutas, auth context, páginas placeholder, migración SQL, design tokens
-- Sprint 2 (Finanzas, Diario, Películas): PENDIENTE
+- Sprint 2 (Finanzas, Diario, Películas): EN PROGRESO — Finanzas completo (movimientos, préstamos con abonos, metas de ahorro, presupuestos, deudas fijas, resumen mensual)
 - Sprint 3 (Eventos, Lugares, Google Drive): PENDIENTE
 - Sprint 4 (Stripe, Premium, Estadísticas): PENDIENTE

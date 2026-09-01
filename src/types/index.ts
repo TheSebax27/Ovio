@@ -69,6 +69,71 @@ export interface Place {
   visited_at: string | null
 }
 
+export interface Loan {
+  id: string
+  user_id: string
+  type: 'given' | 'received'
+  person: string
+  amount: number
+  note: string | null
+  status: 'pending' | 'paid'
+  created_at: string
+}
+
+export interface LoanPayment {
+  id: string
+  loan_id: string
+  amount: number
+  note: string | null
+  date: string
+}
+
+export interface SavingsGoal {
+  id: string
+  user_id: string
+  title: string
+  target_amount: number
+  current_amount: number
+  deadline: string | null
+  status: 'active' | 'completed'
+  created_at: string
+}
+
+export interface SavingsContribution {
+  id: string
+  goal_id: string
+  amount: number
+  note: string | null
+  date: string
+}
+
+export interface Budget {
+  id: string
+  user_id: string
+  category: string
+  limit_amount: number
+  month: number
+  year: number
+}
+
+export interface FixedExpense {
+  id: string
+  user_id: string
+  title: string
+  amount: number
+  category: string
+  due_day: number
+  is_active: boolean
+}
+
+export interface FixedExpensePayment {
+  id: string
+  fixed_expense_id: string
+  month: number
+  year: number
+  paid_at: string | null
+}
+
 export interface Subscription {
   id: string
   user_id: string

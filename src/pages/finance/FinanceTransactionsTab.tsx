@@ -1,9 +1,12 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, Wallet, TrendingUp, TrendingDown, Trash2, Pencil } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getFinances, createFinance, updateFinance, deleteFinance } from '../../services/financeService'
 import FinanceModal from '../../components/modals/FinanceModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
+import ExportButton from '../../components/ui/ExportButton'
 import type { Finance } from '../../types'
 
 function formatMoney(n: number) {
@@ -12,12 +15,14 @@ function formatMoney(n: number) {
 
 export default function FinanceTransactionsTab() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [records, setRecords] = useState<Finance[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Finance | null>(null)
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [filterCategory, setFilterCategory] = useState('all')
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -38,20 +43,29 @@ export default function FinanceTransactionsTab() {
 
   async function handleSave(data: Omit<Finance, 'id' | 'user_id'>) {
     if (!user) return
-    if (editing) {
-      const updated = await updateFinance(editing.id, data)
-      setRecords((prev) => prev.map((r) => r.id === editing.id ? updated : r))
-    } else {
-      const created = await createFinance({ ...data, user_id: user.id })
-      setRecords((prev) => [created, ...prev])
-    }
+    try {
+      if (editing) {
+        const updated = await updateFinance(editing.id, data)
+        setRecords((prev) => prev.map((r) => r.id === editing.id ? updated : r))
+        toast('Registro actualizado')
+      } else {
+        const created = await createFinance({ ...data, user_id: user.id })
+        setRecords((prev) => [created, ...prev])
+        toast('Registro creado')
+      }
+    } catch { toast('Error al guardar', 'error') }
     setEditing(null)
     setModalOpen(false)
   }
 
-  async function handleDelete(id: string) {
-    await deleteFinance(id)
-    setRecords((prev) => prev.filter((r) => r.id !== id))
+  async function confirmDelete() {
+    if (!deleteId) return
+    try {
+      await deleteFinance(deleteId)
+      setRecords((prev) => prev.filter((r) => r.id !== deleteId))
+      toast('Registro eliminado')
+    } catch { toast('Error al eliminar', 'error') }
+    setDeleteId(null)
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
@@ -72,10 +86,13 @@ export default function FinanceTransactionsTab() {
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <button onClick={() => { setEditing(null); setModalOpen(true) }}
-          className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={18} /> Nuevo registro
-        </button>
+        <div className="flex gap-2">
+          <ExportButton data={records.map((r) => ({ Título: r.title, Tipo: r.type === 'income' ? 'Ingreso' : 'Gasto', Categoría: r.category, Monto: r.amount, Fecha: r.date }))} fileName="finanzas" />
+          <button onClick={() => { setEditing(null); setModalOpen(true) }}
+            className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+            <Plus size={18} /> Nuevo registro
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -128,7 +145,7 @@ export default function FinanceTransactionsTab() {
                 <div className="flex gap-1">
                   <button onClick={() => { setEditing(record); setModalOpen(true) }}
                     className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-bg transition-colors"><Pencil size={16} /></button>
-                  <button onClick={() => handleDelete(record.id)}
+                  <button onClick={() => setDeleteId(record.id)}
                     className="p-1.5 rounded-lg text-text-muted hover:text-error hover:bg-error/10 transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>
@@ -137,6 +154,7 @@ export default function FinanceTransactionsTab() {
         </div>
       )}
       <FinanceModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} onSave={handleSave} initial={editing} />
+      <ConfirmDialog open={!!deleteId} title="Eliminar registro" message="Este registro se eliminará permanentemente." onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
     </div>
   )
 }

@@ -10,6 +10,7 @@ interface AuthState {
   loading: boolean
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
+  fetchProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signInWithGoogle, signOut, fetchProfile: () => user ? fetchProfile(user.id) : Promise.resolve() }}>
       {children}
     </AuthContext.Provider>
   )

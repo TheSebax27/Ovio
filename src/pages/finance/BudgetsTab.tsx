@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, Gauge, Trash2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getBudgets, upsertBudget, deleteBudget } from '../../services/budgetService'
 import { getFinances } from '../../services/financeService'
 import BudgetModal from '../../components/modals/BudgetModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import type { Budget, Finance } from '../../types'
 
@@ -15,6 +17,7 @@ const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 
 
 export default function BudgetsTab() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -22,6 +25,7 @@ export default function BudgetsTab() {
   const [expenses, setExpenses] = useState<Finance[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -48,9 +52,22 @@ export default function BudgetsTab() {
 
   async function handleSave(category: string, limitAmount: number) {
     if (!user) return
-    const budget = await upsertBudget({ user_id: user.id, category, limit_amount: limitAmount, month, year })
-    setBudgets((prev) => [...prev.filter((b) => b.category !== category), budget])
+    try {
+      const budget = await upsertBudget({ user_id: user.id, category, limit_amount: limitAmount, month, year })
+      setBudgets((prev) => [...prev.filter((b) => b.category !== category), budget])
+      toast('Presupuesto guardado')
+    } catch { toast('Error al guardar', 'error') }
     setModalOpen(false)
+  }
+
+  async function confirmDelete() {
+    if (!deleteId) return
+    try {
+      await deleteBudget(deleteId)
+      setBudgets((p) => p.filter((x) => x.id !== deleteId))
+      toast('Presupuesto eliminado')
+    } catch { toast('Error al eliminar', 'error') }
+    setDeleteId(null)
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
@@ -93,7 +110,7 @@ export default function BudgetsTab() {
                       <span className={over ? 'text-error font-semibold' : 'text-text'}>{formatMoney(spent)}</span>
                       <span className="text-text-muted"> / {formatMoney(Number(b.limit_amount))}</span>
                     </p>
-                    <button onClick={async () => { await deleteBudget(b.id); setBudgets((p) => p.filter((x) => x.id !== b.id)) }}
+                    <button onClick={() => setDeleteId(b.id)}
                       className="p-1 rounded text-text-muted hover:text-error transition-colors"><Trash2 size={14} /></button>
                   </div>
                 </div>
@@ -107,6 +124,7 @@ export default function BudgetsTab() {
         </div>
       )}
       <BudgetModal open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave} existingCategories={budgets.map((b) => b.category)} />
+      <ConfirmDialog open={!!deleteId} title="Eliminar presupuesto" message="Este presupuesto se eliminará permanentemente." onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
     </div>
   )
 }

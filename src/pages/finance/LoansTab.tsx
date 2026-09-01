@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, HandCoins, Trash2, Pencil, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getLoans, createLoan, updateLoan, deleteLoan, getLoanPayments, createLoanPayment } from '../../services/loanService'
 import LoanModal from '../../components/modals/LoanModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import type { Loan, LoanPayment } from '../../types'
 
@@ -12,6 +14,7 @@ function formatMoney(n: number) {
 
 export default function LoansTab() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [loans, setLoans] = useState<Loan[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -21,6 +24,7 @@ export default function LoansTab() {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNote, setPaymentNote] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'given' | 'received'>('all')
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -45,28 +49,35 @@ export default function LoansTab() {
 
   async function handleSave(data: Omit<Loan, 'id' | 'user_id'>) {
     if (!user) return
-    if (editing) {
-      const updated = await updateLoan(editing.id, data)
-      setLoans((prev) => prev.map((l) => l.id === editing.id ? updated : l))
-    } else {
-      const created = await createLoan({ ...data, user_id: user.id })
-      setLoans((prev) => [created, ...prev])
-    }
+    try {
+      if (editing) {
+        const updated = await updateLoan(editing.id, data)
+        setLoans((prev) => prev.map((l) => l.id === editing.id ? updated : l))
+        toast('Préstamo actualizado')
+      } else {
+        const created = await createLoan({ ...data, user_id: user.id })
+        setLoans((prev) => [created, ...prev])
+        toast('Préstamo registrado')
+      }
+    } catch { toast('Error al guardar', 'error') }
     setEditing(null)
     setModalOpen(false)
   }
 
   async function handleAddPayment(loanId: string) {
     if (!paymentAmount) return
-    const payment = await createLoanPayment({
-      loan_id: loanId,
-      amount: parseFloat(paymentAmount),
-      note: paymentNote.trim() || null,
-      date: new Date().toISOString().split('T')[0],
-    })
-    setPayments((prev) => ({ ...prev, [loanId]: [payment, ...(prev[loanId] ?? [])] }))
-    setPaymentAmount('')
-    setPaymentNote('')
+    try {
+      const payment = await createLoanPayment({
+        loan_id: loanId,
+        amount: parseFloat(paymentAmount),
+        note: paymentNote.trim() || null,
+        date: new Date().toISOString().split('T')[0],
+      })
+      setPayments((prev) => ({ ...prev, [loanId]: [payment, ...(prev[loanId] ?? [])] }))
+      setPaymentAmount('')
+      setPaymentNote('')
+      toast('Abono registrado')
+    } catch { toast('Error al registrar abono', 'error') }
   }
 
   function getPaidAmount(loanId: string) {
@@ -74,8 +85,22 @@ export default function LoansTab() {
   }
 
   async function handleMarkPaid(loan: Loan) {
-    const updated = await updateLoan(loan.id, { status: 'paid' })
-    setLoans((prev) => prev.map((l) => l.id === loan.id ? updated : l))
+    try {
+      const updated = await updateLoan(loan.id, { status: 'paid' })
+      setLoans((prev) => prev.map((l) => l.id === loan.id ? updated : l))
+      toast('Préstamo marcado como pagado')
+    } catch { toast('Error al actualizar', 'error') }
+  }
+
+  async function confirmDelete() {
+    if (!deleteId) return
+    try {
+      await deleteLoan(deleteId)
+      setLoans((p) => p.filter((l) => l.id !== deleteId))
+      if (expandedId === deleteId) setExpandedId(null)
+      toast('Préstamo eliminado')
+    } catch { toast('Error al eliminar', 'error') }
+    setDeleteId(null)
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
@@ -141,7 +166,7 @@ export default function LoansTab() {
                         <button onClick={() => handleMarkPaid(loan)}
                           className="flex items-center gap-1 text-xs text-success hover:text-success/80 px-2 py-1 rounded bg-bg"><Check size={14} /> Marcar pagado</button>
                       )}
-                      <button onClick={async () => { await deleteLoan(loan.id); setLoans((p) => p.filter((l) => l.id !== loan.id)); setExpandedId(null) }}
+                      <button onClick={() => setDeleteId(loan.id)}
                         className="flex items-center gap-1 text-xs text-error hover:text-error/80 px-2 py-1 rounded bg-bg"><Trash2 size={14} /> Eliminar</button>
                     </div>
                     {loan.status === 'pending' && (
@@ -173,6 +198,7 @@ export default function LoansTab() {
         </div>
       )}
       <LoanModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} onSave={handleSave} initial={editing} />
+      <ConfirmDialog open={!!deleteId} title="Eliminar préstamo" message="Este préstamo y su historial de pagos se eliminarán permanentemente." onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
     </div>
   )
 }

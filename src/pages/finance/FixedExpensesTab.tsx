@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Plus, Receipt, Trash2, Pencil, Check, CircleDot } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getFixedExpenses, createFixedExpense, updateFixedExpense, deleteFixedExpense, getAllFixedPayments, markAsPaid } from '../../services/fixedExpenseService'
 import FixedExpenseModal from '../../components/modals/FixedExpenseModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import type { FixedExpense, FixedExpensePayment } from '../../types'
 
@@ -14,6 +16,7 @@ const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 
 
 export default function FixedExpensesTab() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -22,6 +25,7 @@ export default function FixedExpensesTab() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<FixedExpense | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -37,20 +41,37 @@ export default function FixedExpensesTab() {
 
   async function handleSave(data: Omit<FixedExpense, 'id' | 'user_id'>) {
     if (!user) return
-    if (editing) {
-      const updated = await updateFixedExpense(editing.id, data)
-      setExpenses((prev) => prev.map((e) => e.id === editing.id ? updated : e))
-    } else {
-      const created = await createFixedExpense({ ...data, user_id: user.id })
-      setExpenses((prev) => [...prev, created])
-    }
+    try {
+      if (editing) {
+        const updated = await updateFixedExpense(editing.id, data)
+        setExpenses((prev) => prev.map((e) => e.id === editing.id ? updated : e))
+        toast('Deuda fija actualizada')
+      } else {
+        const created = await createFixedExpense({ ...data, user_id: user.id })
+        setExpenses((prev) => [...prev, created])
+        toast('Deuda fija creada')
+      }
+    } catch { toast('Error al guardar', 'error') }
     setEditing(null)
     setModalOpen(false)
   }
 
   async function handleMarkPaid(expenseId: string) {
-    const payment = await markAsPaid(expenseId, month, year)
-    setPayments((prev) => [...prev, payment])
+    try {
+      const payment = await markAsPaid(expenseId, month, year)
+      setPayments((prev) => [...prev, payment])
+      toast('Marcada como pagada')
+    } catch { toast('Error al marcar', 'error') }
+  }
+
+  async function confirmDelete() {
+    if (!deleteId) return
+    try {
+      await deleteFixedExpense(deleteId)
+      setExpenses((p) => p.filter((e) => e.id !== deleteId))
+      toast('Deuda fija eliminada')
+    } catch { toast('Error al eliminar', 'error') }
+    setDeleteId(null)
   }
 
   const totalMonthly = expenses.reduce((s, e) => s + Number(e.amount), 0)
@@ -118,7 +139,7 @@ export default function FixedExpensesTab() {
                     )}
                     <button onClick={() => { setEditing(expense); setModalOpen(true) }}
                       className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-bg transition-colors"><Pencil size={16} /></button>
-                    <button onClick={async () => { await deleteFixedExpense(expense.id); setExpenses((p) => p.filter((e) => e.id !== expense.id)) }}
+                    <button onClick={() => setDeleteId(expense.id)}
                       className="p-1.5 rounded-lg text-text-muted hover:text-error hover:bg-error/10 transition-colors"><Trash2 size={16} /></button>
                   </div>
                 </div>
@@ -128,6 +149,7 @@ export default function FixedExpensesTab() {
         </div>
       )}
       <FixedExpenseModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} onSave={handleSave} initial={editing} />
+      <ConfirmDialog open={!!deleteId} title="Eliminar deuda fija" message="Esta deuda fija se eliminará permanentemente." onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
     </div>
   )
 }

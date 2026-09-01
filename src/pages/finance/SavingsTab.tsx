@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Plus, PiggyBank, Trash2, Pencil, Target } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { getSavingsGoals, createSavingsGoal, updateSavingsGoal, deleteSavingsGoal, getContributions, createContribution } from '../../services/savingsService'
 import SavingsGoalModal from '../../components/modals/SavingsGoalModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import type { SavingsGoal, SavingsContribution } from '../../types'
 
@@ -12,6 +14,7 @@ function formatMoney(n: number) {
 
 export default function SavingsTab() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [goals, setGoals] = useState<SavingsGoal[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -20,6 +23,7 @@ export default function SavingsTab() {
   const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({})
   const [contribAmount, setContribAmount] = useState('')
   const [contribNote, setContribNote] = useState('')
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -39,35 +43,53 @@ export default function SavingsTab() {
 
   async function handleSave(data: Omit<SavingsGoal, 'id' | 'user_id'>) {
     if (!user) return
-    if (editing) {
-      const updated = await updateSavingsGoal(editing.id, data)
-      setGoals((prev) => prev.map((g) => g.id === editing.id ? updated : g))
-    } else {
-      const created = await createSavingsGoal({ ...data, user_id: user.id })
-      setGoals((prev) => [created, ...prev])
-    }
+    try {
+      if (editing) {
+        const updated = await updateSavingsGoal(editing.id, data)
+        setGoals((prev) => prev.map((g) => g.id === editing.id ? updated : g))
+        toast('Meta actualizada')
+      } else {
+        const created = await createSavingsGoal({ ...data, user_id: user.id })
+        setGoals((prev) => [created, ...prev])
+        toast('Meta creada')
+      }
+    } catch { toast('Error al guardar', 'error') }
     setEditing(null)
     setModalOpen(false)
   }
 
   async function handleAddContribution(goal: SavingsGoal) {
     if (!contribAmount) return
-    const amount = parseFloat(contribAmount)
-    const contrib = await createContribution({
-      goal_id: goal.id,
-      amount,
-      note: contribNote.trim() || null,
-      date: new Date().toISOString().split('T')[0],
-    })
-    setContributions((prev) => ({ ...prev, [goal.id]: [contrib, ...(prev[goal.id] ?? [])] }))
-    const newCurrent = Number(goal.current_amount) + amount
-    const updated = await updateSavingsGoal(goal.id, {
-      current_amount: newCurrent,
-      status: newCurrent >= Number(goal.target_amount) ? 'completed' : 'active',
-    })
-    setGoals((prev) => prev.map((g) => g.id === goal.id ? updated : g))
-    setContribAmount('')
-    setContribNote('')
+    try {
+      const amount = parseFloat(contribAmount)
+      const contrib = await createContribution({
+        goal_id: goal.id,
+        amount,
+        note: contribNote.trim() || null,
+        date: new Date().toISOString().split('T')[0],
+      })
+      setContributions((prev) => ({ ...prev, [goal.id]: [contrib, ...(prev[goal.id] ?? [])] }))
+      const newCurrent = Number(goal.current_amount) + amount
+      const updated = await updateSavingsGoal(goal.id, {
+        current_amount: newCurrent,
+        status: newCurrent >= Number(goal.target_amount) ? 'completed' : 'active',
+      })
+      setGoals((prev) => prev.map((g) => g.id === goal.id ? updated : g))
+      setContribAmount('')
+      setContribNote('')
+      toast(newCurrent >= Number(goal.target_amount) ? 'Meta completada!' : 'Aporte registrado')
+    } catch { toast('Error al aportar', 'error') }
+  }
+
+  async function confirmDelete() {
+    if (!deleteId) return
+    try {
+      await deleteSavingsGoal(deleteId)
+      setGoals((p) => p.filter((g) => g.id !== deleteId))
+      if (expandedId === deleteId) setExpandedId(null)
+      toast('Meta eliminada')
+    } catch { toast('Error al eliminar', 'error') }
+    setDeleteId(null)
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
@@ -118,7 +140,7 @@ export default function SavingsTab() {
                     <div className="flex gap-2">
                       <button onClick={() => { setEditing(goal); setModalOpen(true) }}
                         className="flex items-center gap-1 text-xs text-text-muted hover:text-text px-2 py-1 rounded bg-bg"><Pencil size={14} /> Editar</button>
-                      <button onClick={async () => { await deleteSavingsGoal(goal.id); setGoals((p) => p.filter((g) => g.id !== goal.id)); setExpandedId(null) }}
+                      <button onClick={() => setDeleteId(goal.id)}
                         className="flex items-center gap-1 text-xs text-error hover:text-error/80 px-2 py-1 rounded bg-bg"><Trash2 size={14} /> Eliminar</button>
                     </div>
                     {goal.status === 'active' && (
@@ -150,6 +172,7 @@ export default function SavingsTab() {
         </div>
       )}
       <SavingsGoalModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} onSave={handleSave} initial={editing} />
+      <ConfirmDialog open={!!deleteId} title="Eliminar meta" message="Esta meta y todos sus aportes se eliminarán permanentemente." onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} />
     </div>
   )
 }

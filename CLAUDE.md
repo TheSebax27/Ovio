@@ -7,26 +7,33 @@ SaaS de gestión de vida personal. Cada usuario tiene @username único y registr
 - React 19 + TypeScript + Vite 8
 - Tailwind CSS 4 (via @tailwindcss/vite)
 - React Router DOM 7
-- Supabase (auth con Google, DB, RLS)
+- Supabase (auth con Google, DB, RLS, Storage para avatares)
 - Lucide React (iconos)
-- Google Drive (imágenes del usuario, NO Supabase Storage)
+- xlsx (exportar Excel)
+- Google Drive (imágenes del usuario, NO Supabase Storage — excepto avatares)
 - Stripe (planes Basic gratis / Pro $9.900 COP/mes)
+- TMDB API (búsqueda de películas/series con poster — requiere VITE_TMDB_API_KEY)
 - Deploy: Vercel
 
 ## Estructura
 ```
 src/
-├── components/{ui,layout,forms,cards,charts,modals}/
-├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,premium,settings}/
-├── hooks/
-├── services/
-├── lib/supabase.ts
-├── context/AuthContext.tsx
+├── components/{ui,layout,modals}/
+│   ├── ui/EmptyState.tsx, ConfirmDialog.tsx, ExportButton.tsx
+│   ├── layout/Sidebar.tsx (responsive), Topbar.tsx (búsqueda global), AppLayout.tsx
+│   └── modals/FinanceModal, LoanModal, SavingsGoalModal, FixedExpenseModal, BudgetModal, JournalModal, MovieModal (con TMDB), EventModal, PlaceModal
+├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,calendar,premium,settings}/
+├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService
+├── context/AuthContext.tsx, ToastContext.tsx
 ├── routes/AppRouter.tsx
 ├── types/index.ts
-└── utils/
-supabase/migrations/001_initial_schema.sql
-supabase/migrations/002_finance_expanded.sql
+├── lib/supabase.ts
+└── assets/Ovio.png
+supabase/migrations/
+├── 001_initial_schema.sql
+├── 002_finance_expanded.sql
+├── 003_profiles_insert_policy.sql
+└── 004_avatars_bucket.sql
 ```
 
 ## Convenciones
@@ -34,17 +41,17 @@ supabase/migrations/002_finance_expanded.sql
 - Páginas en `pages/<modulo>/<Modulo>Page.tsx`
 - Tipos en `types/index.ts`
 - Servicios de Supabase en `services/`
-- Hooks custom en `hooks/`
 - Colores: usar tokens Tailwind definidos en index.css (@theme): primary, surface, border, text, text-muted, etc.
 
 ## Rutas
 - `/` Landing, `/login`, `/register` (username)
-- `/dashboard`, `/finance`, `/entertainment`, `/events`, `/journal`, `/places`, `/premium`, `/settings`
+- `/dashboard`, `/finance`, `/entertainment`, `/events`, `/journal`, `/places`, `/calendar`, `/premium`, `/settings`
 - ProtectedRoute redirige a /login si no autenticado, a /register si no tiene username
 
 ## Base de datos
 Tablas core: profiles, finances, movies, events, journal, journal_images, places, subscriptions
 Tablas finanzas: loans, loan_payments, savings_goals, savings_contributions, budgets, fixed_expenses, fixed_expense_payments
+Storage: bucket "avatars" (público, RLS por carpeta user_id)
 Todas con RLS. Trigger auto-crea profile al signup.
 Migraciones en supabase/migrations/
 
@@ -52,6 +59,7 @@ Migraciones en supabase/migrations/
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+VITE_TMDB_API_KEY=         # opcional, para buscar películas/series
 ```
 
 ## Comandos
@@ -60,7 +68,19 @@ VITE_SUPABASE_ANON_KEY=
 - `npm run lint` — oxlint
 
 ## Estado del proyecto
-- Sprint 1 (Fundación): COMPLETADO — layout, rutas, auth context, páginas placeholder, migración SQL, design tokens
-- Sprint 2 (Finanzas, Diario, Películas): EN PROGRESO — Finanzas completo (movimientos, préstamos con abonos, metas de ahorro, presupuestos, deudas fijas, resumen mensual)
-- Sprint 3 (Eventos, Lugares, Google Drive): PENDIENTE
-- Sprint 4 (Stripe, Premium, Estadísticas): PENDIENTE
+- Sprint 1 (Fundación): COMPLETADO — layout, rutas, auth, design tokens
+- Sprint 2 (Módulos): COMPLETADO — Finanzas (6 tabs), Diario, Películas/Series, Eventos, Lugares, Dashboard timeline
+- Sprint 3 (UX): COMPLETADO
+  - Sidebar responsive (hamburguesa en móvil, overlay)
+  - Búsqueda global en Topbar (busca en todos los módulos con debounce)
+  - Toast notifications (success/error/info con auto-dismiss)
+  - Confirmación de borrado en TODAS las páginas (ConfirmDialog)
+  - TMDB integration en MovieModal (autocompletado + póster automático)
+  - Frases motivacionales diarias en Dashboard
+  - "Un día como hoy" en Dashboard (compara con años anteriores)
+  - Gráfico de barras SVG en Resumen de Finanzas (últimos 6 meses)
+  - Exportar a Excel en todos los módulos (xlsx)
+  - Vista de Calendario (/calendar) — muestra eventos, diario, gastos, deudas fijas
+  - Foto de perfil editable en Settings (Supabase Storage bucket "avatars")
+- Sprint 4 (Pendiente): Google Drive, Premium/Free, Stripe, Spotify integration
+- Pendiente: Gamificación/logros, Tags/etiquetas, Favoritos

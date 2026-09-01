@@ -8,7 +8,14 @@ function formatMoney(n: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
 }
 
+function formatShort(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return String(n)
+}
+
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const SHORT_MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 export default function SummaryTab() {
   const { user } = useAuth()
@@ -61,6 +68,25 @@ export default function SummaryTab() {
     return Object.entries(map).sort((a, b) => b[1] - a[1])
   }, [currentMonth])
 
+  const last6 = useMemo(() => {
+    const months: { label: string; income: number; expense: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      let m = month - i
+      let y = year
+      while (m <= 0) { m += 12; y-- }
+      const prefix = `${y}-${String(m).padStart(2, '0')}`
+      const filtered = records.filter((r) => r.date.startsWith(prefix))
+      months.push({
+        label: SHORT_MONTHS[m - 1],
+        income: sum(filtered, 'income'),
+        expense: sum(filtered, 'expense'),
+      })
+    }
+    return months
+  }, [records, month, year])
+
+  const chartMax = useMemo(() => Math.max(1, ...last6.flatMap((m) => [m.income, m.expense])), [last6])
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
 
   function DiffBadge({ current, prev }: { current: number; prev: number }) {
@@ -74,6 +100,12 @@ export default function SummaryTab() {
       </span>
     )
   }
+
+  const barW = 28
+  const gap = 12
+  const groupW = barW * 2 + gap
+  const chartH = 160
+  const chartW = last6.length * (groupW + 24)
 
   return (
     <div>
@@ -112,6 +144,37 @@ export default function SummaryTab() {
           </div>
           <p className={`text-2xl font-bold ${savings >= 0 ? 'text-success' : 'text-error'}`}>{formatMoney(savings)}</p>
           <DiffBadge current={savings} prev={prevSavings} />
+        </div>
+      </div>
+
+      <div className="bg-surface border border-border rounded-xl p-5 mb-6">
+        <h3 className="text-sm font-semibold mb-4">Últimos 6 meses</h3>
+        <div className="flex items-center gap-4 mb-3 text-xs text-text-muted">
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-success" /> Ingresos</div>
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-error" /> Gastos</div>
+        </div>
+        <div className="overflow-x-auto">
+          <svg width={chartW + 40} height={chartH + 40} className="mx-auto">
+            {last6.map((m, i) => {
+              const x = 20 + i * (groupW + 24)
+              const incH = (m.income / chartMax) * chartH
+              const expH = (m.expense / chartMax) * chartH
+              return (
+                <g key={i}>
+                  <rect x={x} y={chartH - incH} width={barW} height={incH} rx={4} fill="#10B981" opacity={0.85} />
+                  <rect x={x + barW + gap} y={chartH - expH} width={barW} height={expH} rx={4} fill="#EF4444" opacity={0.85} />
+                  {m.income > 0 && (
+                    <text x={x + barW / 2} y={chartH - incH - 4} textAnchor="middle" fontSize={9} fill="#A1A1AA">{formatShort(m.income)}</text>
+                  )}
+                  {m.expense > 0 && (
+                    <text x={x + barW + gap + barW / 2} y={chartH - expH - 4} textAnchor="middle" fontSize={9} fill="#A1A1AA">{formatShort(m.expense)}</text>
+                  )}
+                  <text x={x + groupW / 2} y={chartH + 16} textAnchor="middle" fontSize={11} fill="#A1A1AA">{m.label}</text>
+                </g>
+              )
+            })}
+            <line x1={18} y1={chartH} x2={chartW + 22} y2={chartH} stroke="#27272A" strokeWidth={1} />
+          </svg>
         </div>
       </div>
 

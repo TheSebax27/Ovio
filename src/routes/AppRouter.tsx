@@ -11,6 +11,7 @@ import EventsPage from '../pages/events/EventsPage'
 import JournalPage from '../pages/journal/JournalPage'
 import PlacesPage from '../pages/places/PlacesPage'
 import PremiumPage from '../pages/premium/PremiumPage'
+import CalendarPage from '../pages/calendar/CalendarPage'
 import SettingsPage from '../pages/settings/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -54,6 +55,7 @@ export default function AppRouter() {
           <Route path="/events" element={<EventsPage />} />
           <Route path="/journal" element={<JournalPage />} />
           <Route path="/places" element={<PlacesPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/premium" element={<PremiumPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

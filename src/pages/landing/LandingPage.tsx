@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom'
+import ovioLogo from '../../assets/Ovio.png'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <header className="flex items-center justify-between px-8 py-5">
-        <span className="text-2xl font-bold text-primary">Ovio</span>
+        <div className="flex items-center gap-2">
+          <img src={ovioLogo} alt="Ovio" className="w-8 h-8" />
+          <span className="text-2xl font-bold text-primary">Ovio</span>
+        </div>
         <Link
           to="/login"
           className="bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"

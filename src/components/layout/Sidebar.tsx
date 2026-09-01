@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import ovioLogo from '../../assets/Ovio.png'
 import {
   LayoutDashboard,
   Wallet,
@@ -24,7 +25,8 @@ const navItems = [
 export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-surface border-r border-border flex flex-col z-30">
-      <div className="h-16 flex items-center px-6">
+      <div className="h-16 flex items-center gap-2 px-6">
+        <img src={ovioLogo} alt="Ovio" className="w-8 h-8" />
         <span className="text-2xl font-bold tracking-tight text-primary">Ovio</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">

@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext'
+import ovioLogo from '../../assets/Ovio.png'
 
 export default function LoginPage() {
   const { signInWithGoogle } = useAuth()
@@ -6,7 +7,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center">
       <div className="w-full max-w-sm bg-surface border border-border rounded-2xl p-8 text-center">
-        <span className="text-3xl font-bold text-primary">Ovio</span>
+        <img src={ovioLogo} alt="Ovio" className="w-16 h-16 mx-auto" />
+        <span className="text-3xl font-bold text-primary mt-3 block">Ovio</span>
         <p className="text-text-muted mt-2 mb-8">Inicia sesión para continuar</p>
         <button
           onClick={signInWithGoogle}

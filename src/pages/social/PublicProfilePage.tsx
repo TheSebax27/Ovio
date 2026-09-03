@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { UserPlus, UserMinus, Film, CalendarDays, MapPin, BookOpen, Wallet, Lock, Star, Music, Trophy } from 'lucide-react'
+import { UserPlus, UserMinus, Film, CalendarDays, MapPin, BookOpen, Lock, Star, Music, Trophy } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { getProfileByUsername, isFollowing, followUser, unfollowUser, getFollowers, getFollowing, getPrivacySettings } from '../../services/socialService'

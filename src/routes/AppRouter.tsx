@@ -13,7 +13,6 @@ import PlacesPage from '../pages/places/PlacesPage'
 import PremiumPage from '../pages/premium/PremiumPage'
 import CalendarPage from '../pages/calendar/CalendarPage'
 import SettingsPage from '../pages/settings/SettingsPage'
-import SearchUsersPage from '../pages/social/SearchUsersPage'
 import SocialFeedPage from '../pages/social/SocialFeedPage'
 import PublicProfilePage from '../pages/social/PublicProfilePage'
 
@@ -61,7 +60,7 @@ export default function AppRouter() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/premium" element={<PremiumPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/social/search" element={<SearchUsersPage />} />
+          <Route path="/social/search" element={<Navigate to="/social/feed" replace />} />
           <Route path="/social/feed" element={<SocialFeedPage />} />
           <Route path="/u/:username" element={<PublicProfilePage />} />
         </Route>

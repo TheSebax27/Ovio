@@ -49,7 +49,7 @@ supabase/migrations/
 ## Rutas
 - `/` Landing, `/login`, `/register` (username)
 - `/dashboard`, `/finance`, `/entertainment`, `/events`, `/journal`, `/places`, `/calendar`, `/premium`, `/settings`
-- `/social/feed` (feed de seguidos), `/social/search` (buscar usuarios), `/u/:username` (perfil público)
+- `/social/feed` (feed + buscador de personas integrado), `/u/:username` (perfil público), `/social/search` redirige a feed
 - ProtectedRoute redirige a /login si no autenticado, a /register si no tiene username
 
 ## Base de datos

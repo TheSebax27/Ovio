@@ -28,7 +28,7 @@ export default function SearchUsersPage() {
       try {
         const data = await searchUsers(val.trim(), user.id)
         setResults(data)
-      } catch { setResults([]) }
+      } catch { setResults([]); toast('Error buscando usuarios', 'error') }
       setSearched(true)
       setLoading(false)
     }, 400)

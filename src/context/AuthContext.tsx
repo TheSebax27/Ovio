@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { setDriveToken, clearDriveToken } from '../services/driveService'
 import type { Profile } from '../types'
 
 interface AuthState {
@@ -11,6 +12,7 @@ interface AuthState {
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   fetchProfile: () => Promise<void>
+  reconnectDrive: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
@@ -25,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.provider_token) setDriveToken(session.provider_token)
       if (session?.user) {
         fetchProfile(session.user.id)
       } else {
@@ -35,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.provider_token) setDriveToken(session.provider_token)
       if (session?.user) {
         fetchProfile(session.user.id)
       } else {
@@ -59,17 +63,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signInWithGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+        scopes: 'https://www.googleapis.com/auth/drive.file',
+      },
+    })
+  }
+
+  async function reconnectDrive() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.href,
+        scopes: 'https://www.googleapis.com/auth/drive.file',
+        queryParams: { prompt: 'consent' },
+      },
     })
   }
 
   async function signOut() {
+    clearDriveToken()
     await supabase.auth.signOut()
     setProfile(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signInWithGoogle, signOut, fetchProfile: () => user ? fetchProfile(user.id) : Promise.resolve() }}>
+    <AuthContext.Provider value={{
+      user, session, profile, loading,
+      signInWithGoogle, signOut, reconnectDrive,
+      fetchProfile: () => user ? fetchProfile(user.id) : Promise.resolve(),
+    }}>
       {children}
     </AuthContext.Provider>
   )

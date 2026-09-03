@@ -10,7 +10,7 @@ SaaS de gestión de vida personal. Cada usuario tiene @username único y registr
 - Supabase (auth con Google, DB, RLS, Storage para avatares)
 - Lucide React (iconos)
 - xlsx (exportar Excel)
-- Google Drive (imágenes del usuario, NO Supabase Storage — excepto avatares)
+- Google Drive API v3 (imágenes del usuario — carpeta "Ovio" por usuario, scope drive.file, WebP autoconversión)
 - Stripe (planes Basic gratis / Pro $9.900 COP/mes)
 - TMDB API (búsqueda de películas/series con poster — requiere VITE_TMDB_API_KEY)
 - Deploy: Vercel
@@ -19,12 +19,12 @@ SaaS de gestión de vida personal. Cada usuario tiene @username único y registr
 ```
 src/
 ├── components/{ui,layout,modals}/
-│   ├── ui/EmptyState.tsx, ConfirmDialog.tsx, ExportButton.tsx
+│   ├── ui/EmptyState.tsx, ConfirmDialog.tsx, ExportButton.tsx, ImageUploader.tsx
 │   ├── layout/Sidebar.tsx (responsive), Topbar.tsx (búsqueda global), AppLayout.tsx
 │   └── modals/FinanceModal, LoanModal, SavingsGoalModal, FixedExpenseModal, BudgetModal, JournalModal, MovieModal (con TMDB), EventModal, PlaceModal
 ├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,calendar,premium,settings,social}/
 │   └── social/SearchUsersPage.tsx, SocialFeedPage.tsx, PublicProfilePage.tsx
-├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService
+├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService, driveService, imageService
 ├── context/AuthContext.tsx, ToastContext.tsx
 ├── routes/AppRouter.tsx
 ├── types/index.ts
@@ -36,7 +36,8 @@ supabase/migrations/
 ├── 003_profiles_insert_policy.sql
 ├── 004_avatars_bucket.sql
 ├── 005_username_unique_check.sql
-└── 006_social_follows.sql
+├── 006_social_follows.sql
+└── 007_drive_images.sql
 ```
 
 ## Convenciones
@@ -97,5 +98,12 @@ VITE_TMDB_API_KEY=         # opcional, para buscar películas/series
   - Bio editable en Settings + toggles de privacidad
   - Username único con SECURITY DEFINER (bypass RLS)
   - Sidebar actualizado con Feed y Personas
-- Sprint 5 (Pendiente): Google Drive, Premium/Free, Stripe, Spotify integration
+- Sprint 5 (Imágenes): EN PROGRESO
+  - Google Drive integration (carpeta "Ovio" por usuario, drive_folder_id en profile)
+  - ImageUploader componente global reutilizable
+  - Conversión automática a WebP (Canvas API, max 1200px, 82% quality)
+  - Integrado en EventModal (drive_cover), PlaceModal (drive_image), JournalModal (drive_image)
+  - Token de Drive se captura en login y se guarda en localStorage
+  - reconnectDrive() si el token expira (~1 hora)
+- Sprint 6 (Pendiente): Premium/Free, Stripe, Spotify integration
 - Pendiente: Gamificación/logros, Tags/etiquetas, Favoritos

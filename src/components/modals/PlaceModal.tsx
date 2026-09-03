@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Star } from 'lucide-react'
 import type { Place } from '../../types'
+import ImageUploader from '../ui/ImageUploader'
 
 interface PlaceModalProps {
   open: boolean
@@ -15,6 +16,7 @@ export default function PlaceModal({ open, onClose, onSave, initial }: PlaceModa
   const [country, setCountry] = useState('')
   const [rating, setRating] = useState<number | null>(null)
   const [visitedAt, setVisitedAt] = useState('')
+  const [driveImage, setDriveImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (initial) {
@@ -23,12 +25,14 @@ export default function PlaceModal({ open, onClose, onSave, initial }: PlaceModa
       setCountry(initial.country)
       setRating(initial.rating)
       setVisitedAt(initial.visited_at ?? '')
+      setDriveImage(initial.drive_image)
     } else {
       setName('')
       setCity('')
       setCountry('')
       setRating(null)
       setVisitedAt('')
+      setDriveImage(null)
     }
   }, [initial, open])
 
@@ -42,12 +46,13 @@ export default function PlaceModal({ open, onClose, onSave, initial }: PlaceModa
       country: country.trim(),
       rating,
       visited_at: visitedAt || null,
+      drive_image: driveImage,
     })
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit} className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md">
+      <form onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit} className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">{initial ? 'Editar' : 'Nuevo'} lugar</h2>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-text"><X size={20} /></button>
@@ -63,6 +68,7 @@ export default function PlaceModal({ open, onClose, onSave, initial }: PlaceModa
           </div>
           <input type="date" value={visitedAt} onChange={(e) => setVisitedAt(e.target.value)}
             className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-sm text-text focus:outline-none focus:border-primary" />
+          <ImageUploader value={driveImage} onChange={setDriveImage} />
           <div>
             <label className="text-xs text-text-muted mb-2 block">Rating</label>
             <div className="flex gap-1">

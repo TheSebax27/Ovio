@@ -92,6 +92,7 @@ export interface JournalEntry {
   title: string
   content: string
   mood: number | null
+  drive_image: string | null
   created_at: string
 }
 
@@ -109,6 +110,7 @@ export interface Place {
   country: string
   rating: number | null
   visited_at: string | null
+  drive_image: string | null
 }
 
 export interface Loan {

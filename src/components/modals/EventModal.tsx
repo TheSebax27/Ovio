@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { Event } from '../../types'
+import ImageUploader from '../ui/ImageUploader'
 
 interface EventModalProps {
   open: boolean
@@ -16,6 +17,7 @@ export default function EventModal({ open, onClose, onSave, initial }: EventModa
   const [venue, setVenue] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [notes, setNotes] = useState('')
+  const [driveCover, setDriveCover] = useState<string | null>(null)
 
   useEffect(() => {
     if (initial) {
@@ -25,6 +27,7 @@ export default function EventModal({ open, onClose, onSave, initial }: EventModa
       setVenue(initial.venue)
       setEventDate(initial.event_date)
       setNotes(initial.notes ?? '')
+      setDriveCover(initial.drive_cover)
     } else {
       setTitle('')
       setType('concert')
@@ -32,6 +35,7 @@ export default function EventModal({ open, onClose, onSave, initial }: EventModa
       setVenue('')
       setEventDate('')
       setNotes('')
+      setDriveCover(null)
     }
   }, [initial, open])
 
@@ -45,14 +49,14 @@ export default function EventModal({ open, onClose, onSave, initial }: EventModa
       city: city.trim(),
       venue: venue.trim(),
       event_date: eventDate,
-      drive_cover: initial?.drive_cover ?? null,
+      drive_cover: driveCover,
       notes: notes.trim() || null,
     })
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit} className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md">
+      <form onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit} className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">{initial ? 'Editar' : 'Nuevo'} evento</h2>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-text"><X size={20} /></button>
@@ -78,6 +82,7 @@ export default function EventModal({ open, onClose, onSave, initial }: EventModa
           </div>
           <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required
             className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-sm text-text focus:outline-none focus:border-primary" />
+          <ImageUploader value={driveCover} onChange={setDriveCover} />
           <textarea placeholder="Notas (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
             className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-primary resize-none" />
         </div>

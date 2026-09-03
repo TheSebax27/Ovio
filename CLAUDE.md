@@ -22,8 +22,9 @@ src/
 │   ├── ui/EmptyState.tsx, ConfirmDialog.tsx, ExportButton.tsx
 │   ├── layout/Sidebar.tsx (responsive), Topbar.tsx (búsqueda global), AppLayout.tsx
 │   └── modals/FinanceModal, LoanModal, SavingsGoalModal, FixedExpenseModal, BudgetModal, JournalModal, MovieModal (con TMDB), EventModal, PlaceModal
-├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,calendar,premium,settings}/
-├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService
+├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,calendar,premium,settings,social}/
+│   └── social/SearchUsersPage.tsx, SocialFeedPage.tsx, PublicProfilePage.tsx
+├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService
 ├── context/AuthContext.tsx, ToastContext.tsx
 ├── routes/AppRouter.tsx
 ├── types/index.ts
@@ -33,7 +34,9 @@ supabase/migrations/
 ├── 001_initial_schema.sql
 ├── 002_finance_expanded.sql
 ├── 003_profiles_insert_policy.sql
-└── 004_avatars_bucket.sql
+├── 004_avatars_bucket.sql
+├── 005_username_unique_check.sql
+└── 006_social_follows.sql
 ```
 
 ## Convenciones
@@ -46,13 +49,16 @@ supabase/migrations/
 ## Rutas
 - `/` Landing, `/login`, `/register` (username)
 - `/dashboard`, `/finance`, `/entertainment`, `/events`, `/journal`, `/places`, `/calendar`, `/premium`, `/settings`
+- `/social/feed` (feed de seguidos), `/social/search` (buscar usuarios), `/u/:username` (perfil público)
 - ProtectedRoute redirige a /login si no autenticado, a /register si no tiene username
 
 ## Base de datos
-Tablas core: profiles, finances, movies, events, journal, journal_images, places, subscriptions
+Tablas core: profiles (con bio, is_public, followers_count, following_count), finances, movies, events, journal, journal_images, places, subscriptions
 Tablas finanzas: loans, loan_payments, savings_goals, savings_contributions, budgets, fixed_expenses, fixed_expense_payments
+Tablas social: follows (follower_id, following_id), privacy_settings (show_finances/movies/events/places/journal por usuario)
+RPCs: check_username_available, claim_username (SECURITY DEFINER), search_users, get_social_feed
 Storage: bucket "avatars" (público, RLS por carpeta user_id)
-Todas con RLS. Trigger auto-crea profile al signup.
+Todas con RLS. Trigger auto-crea profile al signup. Trigger update_follow_counts actualiza contadores al follow/unfollow.
 Migraciones en supabase/migrations/
 
 ## Variables de entorno
@@ -82,5 +88,14 @@ VITE_TMDB_API_KEY=         # opcional, para buscar películas/series
   - Exportar a Excel en todos los módulos (xlsx)
   - Vista de Calendario (/calendar) — muestra eventos, diario, gastos, deudas fijas
   - Foto de perfil editable en Settings (Supabase Storage bucket "avatars")
-- Sprint 4 (Pendiente): Google Drive, Premium/Free, Stripe, Spotify integration
+- Sprint 4 (Social): EN PROGRESO
+  - Sistema de follow/followers con contadores automáticos (trigger)
+  - Búsqueda de usuarios (SearchUsersPage con debounce 400ms)
+  - Perfiles públicos (/u/:username) con tabs de contenido
+  - Feed social (actividad de seguidos, SocialFeedPage)
+  - Privacidad por módulo (cada usuario elige qué se ve)
+  - Bio editable en Settings + toggles de privacidad
+  - Username único con SECURITY DEFINER (bypass RLS)
+  - Sidebar actualizado con Feed y Personas
+- Sprint 5 (Pendiente): Google Drive, Premium/Free, Stripe, Spotify integration
 - Pendiente: Gamificación/logros, Tags/etiquetas, Favoritos

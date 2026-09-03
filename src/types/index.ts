@@ -5,9 +5,51 @@ export interface Profile {
   username: string
   username_lower: string
   avatar_url: string | null
+  bio: string
+  is_public: boolean
+  followers_count: number
+  following_count: number
   plan: 'free' | 'pro'
   drive_folder_id: string | null
   created_at: string
+}
+
+export interface PrivacySettings {
+  user_id: string
+  show_finances: boolean
+  show_movies: boolean
+  show_events: boolean
+  show_journal: boolean
+  show_places: boolean
+}
+
+export interface Follow {
+  id: string
+  follower_id: string
+  following_id: string
+  created_at: string
+}
+
+export interface SearchUserResult {
+  id: string
+  username: string
+  name: string
+  avatar_url: string | null
+  bio: string
+  followers_count: number
+  following_count: number
+  is_following: boolean
+}
+
+export interface SocialFeedItem {
+  item_type: 'movie' | 'event' | 'place' | 'journal'
+  item_id: string
+  user_id: string
+  username: string
+  avatar_url: string | null
+  title: string
+  subtitle: string
+  created_date: string
 }
 
 export interface Finance {

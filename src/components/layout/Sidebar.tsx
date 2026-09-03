@@ -8,6 +8,8 @@ import {
   Calendar,
   BookOpen,
   MapPin,
+  Users,
+  Rss,
   Crown,
   Settings,
   X,
@@ -15,6 +17,8 @@ import {
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },
+  { to: '/social/feed', icon: Rss, label: 'Feed' },
+  { to: '/social/search', icon: Users, label: 'Personas' },
   { to: '/finance', icon: Wallet, label: 'Finanzas' },
   { to: '/entertainment', icon: Film, label: 'Entretenimiento' },
   { to: '/events', icon: CalendarDays, label: 'Eventos' },

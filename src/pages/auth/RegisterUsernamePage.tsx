@@ -53,20 +53,23 @@ export default function RegisterUsernamePage() {
     setChecking(true)
 
     debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username_lower', username.toLowerCase())
-        .maybeSingle()
+      const { data, error: rpcErr } = await supabase
+        .rpc('check_username_available', { target_username: username })
 
-      if (data) {
-        setAvailable(false)
-        setError('Este username ya está en uso')
-        setSuggestions(generateSuggestions(username))
-      } else {
+      if (rpcErr) {
+        setError('Error al verificar disponibilidad')
+        setChecking(false)
+        return
+      }
+
+      if (data === true) {
         setAvailable(true)
         setError('')
         setSuggestions([])
+      } else {
+        setAvailable(false)
+        setError('Este username ya está en uso')
+        setSuggestions(generateSuggestions(username))
       }
       setChecking(false)
     }, 400)
@@ -81,35 +84,22 @@ export default function RegisterUsernamePage() {
     setSaving(true)
     setError('')
 
-    const { count } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('id', user.id)
+    const { data, error: rpcErr } = await supabase
+      .rpc('claim_username', { user_id: user.id, new_username: username })
 
-    if (!count || count === 0) {
-      const { error: insertErr } = await supabase.from('profiles').insert({
-        id: user.id,
-        email: user.email ?? '',
-        name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '',
-        avatar_url: user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? '',
-        username,
-        username_lower: username.toLowerCase(),
-      })
-      if (insertErr) {
-        setError(insertErr.message.includes('unique') ? 'Este username ya está en uso' : insertErr.message)
-        setSaving(false)
-        return
-      }
-    } else {
-      const { error: updateErr } = await supabase
-        .from('profiles')
-        .update({ username, username_lower: username.toLowerCase() })
-        .eq('id', user.id)
-      if (updateErr) {
-        setError(updateErr.message.includes('unique') ? 'Este username ya está en uso' : updateErr.message)
-        setSaving(false)
-        return
-      }
+    if (rpcErr) {
+      setError(rpcErr.message)
+      setSaving(false)
+      return
+    }
+
+    const result = data as { success: boolean; error?: string }
+    if (!result.success) {
+      setError(result.error ?? 'No se pudo registrar el username')
+      setAvailable(false)
+      setSuggestions(generateSuggestions(username))
+      setSaving(false)
+      return
     }
 
     window.location.href = '/dashboard'

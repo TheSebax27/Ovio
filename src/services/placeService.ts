@@ -11,7 +11,7 @@ export async function getPlaces(userId: string): Promise<Place[]> {
   return data ?? []
 }
 
-export async function createPlace(place: Omit<Place, 'id'>): Promise<Place> {
+export async function createPlace(place: Omit<Place, 'id' | 'likes_count'>): Promise<Place> {
   const { data, error } = await supabase.from('places').insert(place).select().single()
   if (error) throw error
   return data

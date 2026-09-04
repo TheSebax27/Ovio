@@ -11,7 +11,7 @@ export async function getEvents(userId: string): Promise<Event[]> {
   return data ?? []
 }
 
-export async function createEvent(event: Omit<Event, 'id'>): Promise<Event> {
+export async function createEvent(event: Omit<Event, 'id' | 'likes_count'>): Promise<Event> {
   const { data, error } = await supabase.from('events').insert(event).select().single()
   if (error) throw error
   return data

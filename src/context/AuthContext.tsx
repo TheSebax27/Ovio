@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/dashboard`,
-        scopes: 'https://www.googleapis.com/auth/drive.file',
+        scopes: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar',
       },
     })
   }
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: 'google',
       options: {
         redirectTo: window.location.href,
-        scopes: 'https://www.googleapis.com/auth/drive.file',
+        scopes: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar',
         queryParams: { prompt: 'consent' },
       },
     })

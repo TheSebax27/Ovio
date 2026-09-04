@@ -21,10 +21,10 @@ src/
 ├── components/{ui,layout,modals}/
 │   ├── ui/EmptyState.tsx, ConfirmDialog.tsx, ExportButton.tsx, ImageUploader.tsx
 │   ├── layout/Sidebar.tsx (responsive), Topbar.tsx (búsqueda global), AppLayout.tsx
-│   └── modals/FinanceModal, LoanModal, SavingsGoalModal, FixedExpenseModal, BudgetModal, JournalModal, MovieModal (con TMDB), EventModal, PlaceModal
+│   └── modals/FinanceModal, LoanModal, SavingsGoalModal, FixedExpenseModal, BudgetModal, JournalModal, MovieModal (con TMDB), EventModal, PlaceModal, TaskModal
 ├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,calendar,premium,settings,social}/
 │   └── social/SearchUsersPage.tsx, SocialFeedPage.tsx, PublicProfilePage.tsx
-├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService, driveService, imageService
+├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService, driveService, imageService, taskService, gcalService
 ├── context/AuthContext.tsx, ToastContext.tsx
 ├── routes/AppRouter.tsx
 ├── types/index.ts
@@ -37,7 +37,8 @@ supabase/migrations/
 ├── 004_avatars_bucket.sql
 ├── 005_username_unique_check.sql
 ├── 006_social_follows.sql
-└── 007_drive_images.sql
+├── 007_drive_images.sql
+└── 008_tasks_planner.sql
 ```
 
 ## Convenciones
@@ -54,7 +55,7 @@ supabase/migrations/
 - ProtectedRoute redirige a /login si no autenticado, a /register si no tiene username
 
 ## Base de datos
-Tablas core: profiles (con bio, is_public, followers_count, following_count), finances, movies, events, journal, journal_images, places, subscriptions
+Tablas core: profiles (con bio, is_public, followers_count, following_count, gcal_sync), finances, movies, events, journal, journal_images, places, tasks, subscriptions
 Tablas finanzas: loans, loan_payments, savings_goals, savings_contributions, budgets, fixed_expenses, fixed_expense_payments
 Tablas social: follows (follower_id, following_id), privacy_settings (show_finances/movies/events/places/journal por usuario)
 RPCs: check_username_available, claim_username (SECURITY DEFINER), search_users, get_social_feed
@@ -105,5 +106,14 @@ VITE_TMDB_API_KEY=         # opcional, para buscar películas/series
   - Integrado en EventModal (drive_cover), PlaceModal (drive_image), JournalModal (drive_image)
   - Token de Drive se captura en login y se guarda en localStorage
   - reconnectDrive() si el token expira (~1 hora)
-- Sprint 6 (Pendiente): Premium/Free, Stripe, Spotify integration
+- Sprint 6 (Planificador): COMPLETADO
+  - Tabla tasks con prioridad (low/medium/high), fecha, hora, completed
+  - TaskModal para crear/editar tareas
+  - Tareas integradas en CalendarPage (se ven como chips de color por prioridad)
+  - Panel de día con toggle completar, editar, eliminar tareas
+  - Google Calendar sync OPCIONAL (toggle en calendario)
+  - gcalService.ts: lee/crea/borra eventos en GCal del usuario
+  - gcal_sync flag en profiles controla si está activo
+  - Scope calendar agregado al OAuth login
+- Sprint 7 (Pendiente): Premium/Free, Stripe, Spotify integration
 - Pendiente: Gamificación/logros, Tags/etiquetas, Favoritos

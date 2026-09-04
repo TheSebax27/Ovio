@@ -178,6 +178,19 @@ export interface FixedExpensePayment {
   paid_at: string | null
 }
 
+export interface Task {
+  id: string
+  user_id: string
+  title: string
+  description: string
+  date: string
+  time: string | null
+  priority: 'low' | 'medium' | 'high'
+  completed: boolean
+  gcal_event_id: string | null
+  created_at: string
+}
+
 export interface Subscription {
   id: string
   user_id: string

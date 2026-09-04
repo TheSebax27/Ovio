@@ -11,6 +11,7 @@ export interface Profile {
   following_count: number
   plan: 'free' | 'pro'
   drive_folder_id: string | null
+  gcal_sync: boolean
   created_at: string
 }
 

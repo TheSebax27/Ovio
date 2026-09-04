@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, MapPin, Trash2, Pencil, Star, Globe } from 'lucide-react'
+import { Plus, MapPin, Trash2, Pencil, Star, Globe, Heart } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { getPlaces, createPlace, updatePlace, deletePlace } from '../../services/placeService'
+import { toggleLike, getUserLikes } from '../../services/likeService'
 import PlaceModal from '../../components/modals/PlaceModal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
@@ -13,6 +14,7 @@ export default function PlacesPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [places, setPlaces] = useState<Place[]>([])
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Place | null>(null)
@@ -21,7 +23,9 @@ export default function PlacesPage() {
 
   useEffect(() => {
     if (!user) return
-    getPlaces(user.id).then((data) => { setPlaces(data); setLoading(false) })
+    Promise.all([getPlaces(user.id), getUserLikes('place')]).then(([data, likes]) => {
+      setPlaces(data); setLikedIds(likes); setLoading(false)
+    }).catch(() => setLoading(false))
   }, [user])
 
   const countries = useMemo(() => [...new Set(places.map((p) => p.country))].sort(), [places])
@@ -30,7 +34,7 @@ export default function PlacesPage() {
     places.filter((p) => filterCountry === 'all' || p.country === filterCountry),
     [places, filterCountry])
 
-  async function handleSave(data: Omit<Place, 'id' | 'user_id'>) {
+  async function handleSave(data: Omit<Place, 'id' | 'user_id' | 'likes_count'>) {
     if (!user) return
     try {
       if (editing) {
@@ -43,8 +47,7 @@ export default function PlacesPage() {
         toast('Lugar registrado')
       }
     } catch { toast('Error al guardar', 'error') }
-    setEditing(null)
-    setModalOpen(false)
+    setEditing(null); setModalOpen(false)
   }
 
   async function confirmDelete() {
@@ -57,14 +60,31 @@ export default function PlacesPage() {
     setDeleteId(null)
   }
 
+  async function handleLike(placeId: string) {
+    try {
+      const liked = await toggleLike('place', placeId)
+      setLikedIds((prev) => {
+        const next = new Set(prev)
+        liked ? next.add(placeId) : next.delete(placeId)
+        return next
+      })
+      setPlaces((prev) => prev.map((p) =>
+        p.id === placeId ? { ...p, likes_count: p.likes_count + (liked ? 1 : -1) } : p
+      ))
+    } catch { toast('Error', 'error') }
+  }
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Lugares</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Lugares</h1>
+          <p className="text-sm text-text-muted">Todos los lugares que has visitado</p>
+        </div>
         <div className="flex gap-2">
-          <ExportButton data={places.map((p) => ({ Nombre: p.name, Ciudad: p.city, País: p.country, Rating: p.rating ?? '', Fecha: p.visited_at ?? '' }))} fileName="lugares" />
+          <ExportButton data={places.map((p) => ({ Nombre: p.name, Ciudad: p.city, País: p.country, Rating: p.rating ?? '', Fecha: p.visited_at ?? '', Likes: p.likes_count }))} fileName="lugares" />
           <button onClick={() => { setEditing(null); setModalOpen(true) }}
             className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
             <Plus size={18} /> Nuevo lugar
@@ -73,35 +93,40 @@ export default function PlacesPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm text-text-muted">Lugares</p>
-            <MapPin size={20} className="text-primary" />
+        <div className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin size={22} className="text-primary" /></div>
+          <div>
+            <p className="text-xs text-text-muted">Total de lugares</p>
+            <p className="text-2xl font-bold">{places.length}</p>
           </div>
-          <p className="text-2xl font-bold">{places.length}</p>
         </div>
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm text-text-muted">Países</p>
-            <Globe size={20} className="text-secondary" />
+        <div className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center"><Globe size={22} className="text-secondary" /></div>
+          <div>
+            <p className="text-xs text-text-muted">Países</p>
+            <p className="text-2xl font-bold">{countries.length}</p>
           </div>
-          <p className="text-2xl font-bold text-secondary">{countries.length}</p>
         </div>
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm text-text-muted">Ciudades</p>
-            <MapPin size={20} className="text-success" />
+        <div className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center"><MapPin size={22} className="text-success" /></div>
+          <div>
+            <p className="text-xs text-text-muted">Ciudades</p>
+            <p className="text-2xl font-bold">{new Set(places.map((p) => p.city)).size}</p>
           </div>
-          <p className="text-2xl font-bold text-success">{new Set(places.map((p) => p.city)).size}</p>
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4">
-        <select value={filterCountry} onChange={(e) => setFilterCountry(e.target.value)}
-          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-primary">
-          <option value="all">Todos los países</option>
-          {countries.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        <button onClick={() => setFilterCountry('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            filterCountry === 'all' ? 'bg-primary text-white' : 'bg-surface border border-border text-text-muted hover:text-text'
+          }`}>Todos</button>
+        {countries.map((c) => (
+          <button key={c} onClick={() => setFilterCountry(c)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              filterCountry === c ? 'bg-primary text-white' : 'bg-surface border border-border text-text-muted hover:text-text'
+            }`}>{c}</button>
+        ))}
       </div>
 
       {filtered.length === 0 ? (
@@ -109,34 +134,60 @@ export default function PlacesPage() {
           <EmptyState icon={MapPin} title="Sin lugares" description="Registra los lugares que has visitado y califícalos" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((place) => (
-            <div key={place.id} className="bg-surface border border-border rounded-xl p-5 group hover:bg-surface-hover transition-colors">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium mb-1">{place.name}</p>
-                  <div className="flex items-center gap-1 text-xs text-text-muted mb-2">
-                    <MapPin size={12} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filtered.map((place) => {
+            const isLiked = likedIds.has(place.id)
+            return (
+              <div key={place.id} className="bg-surface border border-border rounded-2xl overflow-hidden group hover:border-primary/30 transition-colors">
+                <div className="relative h-44 bg-bg overflow-hidden">
+                  {place.drive_image ? (
+                    <img src={place.drive_image} alt={place.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-success/20 to-primary/20 flex items-center justify-center">
+                      <MapPin size={40} className="text-text-muted/30" />
+                    </div>
+                  )}
+                  <span className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
+                    {place.country}
+                  </span>
+                  <div className="absolute top-3 right-3 flex gap-1">
+                    <button onClick={() => { setEditing(place); setModalOpen(true) }}
+                      className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => setDeleteId(place.id)}
+                      className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-error/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <h3 className="text-sm font-semibold">{place.name}</h3>
+                  <div className="flex items-center gap-1 text-xs text-text-muted mt-0.5">
+                    <MapPin size={11} />
                     <span>{place.city}, {place.country}</span>
                   </div>
                   {place.rating && (
-                    <div className="flex gap-0.5">
+                    <div className="flex gap-0.5 mt-2">
                       {[1, 2, 3, 4, 5].map((n) => (
-                        <Star key={n} size={14} className={n <= place.rating! ? 'text-warning fill-warning' : 'text-text-muted/20'} />
+                        <Star key={n} size={13} className={n <= place.rating! ? 'text-warning fill-warning' : 'text-text-muted/20'} />
                       ))}
                     </div>
                   )}
-                  {place.visited_at && <p className="text-xs text-text-muted mt-2">{place.visited_at}</p>}
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditing(place); setModalOpen(true) }}
-                    className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-bg transition-colors"><Pencil size={14} /></button>
-                  <button onClick={() => setDeleteId(place.id)}
-                    className="p-1.5 rounded-lg text-text-muted hover:text-error hover:bg-error/10 transition-colors"><Trash2 size={14} /></button>
+                  {place.visited_at && (
+                    <p className="text-[11px] text-text-muted mt-1">{new Date(place.visited_at + 'T12:00:00').toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                    <button onClick={() => handleLike(place.id)}
+                      className={`flex items-center gap-1.5 text-sm transition-colors ${isLiked ? 'text-error' : 'text-text-muted hover:text-error'}`}>
+                      <Heart size={16} className={isLiked ? 'fill-error' : ''} />
+                      <span className="text-xs font-medium">{place.likes_count}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
       <PlaceModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} onSave={handleSave} initial={editing} />

@@ -75,16 +75,19 @@ export interface Movie {
   watched_at: string | null
 }
 
+export type EventType = 'concert' | 'match' | 'festival' | 'gastro' | 'tech' | 'sports' | 'art' | 'theater' | 'networking' | 'other'
+
 export interface Event {
   id: string
   user_id: string
   title: string
-  type: 'concert' | 'match'
+  type: EventType
   city: string
   venue: string
   event_date: string
   drive_cover: string | null
   notes: string | null
+  likes_count: number
 }
 
 export interface JournalEntry {
@@ -112,6 +115,7 @@ export interface Place {
   rating: number | null
   visited_at: string | null
   drive_image: string | null
+  likes_count: number
 }
 
 export interface Loan {

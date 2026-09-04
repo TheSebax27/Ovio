@@ -24,7 +24,7 @@ src/
 │   └── modals/FinanceModal, LoanModal, SavingsGoalModal, FixedExpenseModal, BudgetModal, JournalModal, MovieModal (con TMDB), EventModal, PlaceModal, TaskModal
 ├── pages/{landing,auth,dashboard,finance,entertainment,events,journal,places,calendar,premium,settings,social}/
 │   └── social/SearchUsersPage.tsx, SocialFeedPage.tsx, PublicProfilePage.tsx
-├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService, driveService, imageService, taskService, gcalService
+├── services/financeService, loanService, savingsService, budgetService, fixedExpenseService, journalService, movieService, eventService, placeService, tmdbService, exportService, socialService, driveService, imageService, taskService, gcalService, likeService
 ├── context/AuthContext.tsx, ToastContext.tsx
 ├── routes/AppRouter.tsx
 ├── types/index.ts
@@ -38,7 +38,8 @@ supabase/migrations/
 ├── 005_username_unique_check.sql
 ├── 006_social_follows.sql
 ├── 007_drive_images.sql
-└── 008_tasks_planner.sql
+├── 008_tasks_planner.sql
+└── 009_likes.sql
 ```
 
 ## Convenciones
@@ -55,7 +56,7 @@ supabase/migrations/
 - ProtectedRoute redirige a /login si no autenticado, a /register si no tiene username
 
 ## Base de datos
-Tablas core: profiles (con bio, is_public, followers_count, following_count, gcal_sync), finances, movies, events, journal, journal_images, places, tasks, subscriptions
+Tablas core: profiles (con bio, is_public, followers_count, following_count, gcal_sync), finances, movies, events (likes_count, tipos expandidos), journal, journal_images, places (likes_count, drive_image), tasks, likes, subscriptions
 Tablas finanzas: loans, loan_payments, savings_goals, savings_contributions, budgets, fixed_expenses, fixed_expense_payments
 Tablas social: follows (follower_id, following_id), privacy_settings (show_finances/movies/events/places/journal por usuario)
 RPCs: check_username_available, claim_username (SECURITY DEFINER), search_users, get_social_feed

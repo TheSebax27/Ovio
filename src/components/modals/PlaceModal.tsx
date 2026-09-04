@@ -6,7 +6,7 @@ import ImageUploader from '../ui/ImageUploader'
 interface PlaceModalProps {
   open: boolean
   onClose: () => void
-  onSave: (data: Omit<Place, 'id' | 'user_id'> & { user_id?: string }) => void
+  onSave: (data: Omit<Place, 'id' | 'user_id' | 'likes_count'> & { user_id?: string }) => void
   initial?: Place | null
 }
 

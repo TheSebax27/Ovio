@@ -84,7 +84,7 @@ export default function PlacesPage() {
           <p className="text-sm text-text-muted">Todos los lugares que has visitado</p>
         </div>
         <div className="flex gap-2">
-          <ExportButton data={places.map((p) => ({ Nombre: p.name, Ciudad: p.city, País: p.country, Rating: p.rating ?? '', Fecha: p.visited_at ?? '', Likes: p.likes_count }))} fileName="lugares" />
+          <ExportButton data={places.map((p) => ({ Nombre: p.name, Ciudad: p.city, País: p.country, Rating: p.rating ?? '', Fecha: p.visited_at ?? '', Likes: p.likes_count ?? 0 }))} fileName="lugares" />
           <button onClick={() => { setEditing(null); setModalOpen(true) }}
             className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
             <Plus size={18} /> Nuevo lugar
@@ -181,7 +181,7 @@ export default function PlacesPage() {
                     <button onClick={() => handleLike(place.id)}
                       className={`flex items-center gap-1.5 text-sm transition-colors ${isLiked ? 'text-error' : 'text-text-muted hover:text-error'}`}>
                       <Heart size={16} className={isLiked ? 'fill-error' : ''} />
-                      <span className="text-xs font-medium">{place.likes_count}</span>
+                      <span className="text-xs font-medium">{place.likes_count ?? 0}</span>
                     </button>
                   </div>
                 </div>

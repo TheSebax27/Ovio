@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { UserPlus, UserMinus, Film, CalendarDays, MapPin, BookOpen, Lock, Star, Music, Trophy } from 'lucide-react'
+import { UserPlus, UserMinus, Film, CalendarDays, MapPin, BookOpen, Lock, Star, Heart } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { getProfileByUsername, isFollowing, followUser, unfollowUser, getFollowers, getFollowing, getPrivacySettings } from '../../services/socialService'
@@ -8,8 +8,24 @@ import { getMovies } from '../../services/movieService'
 import { getEvents } from '../../services/eventService'
 import { getPlaces } from '../../services/placeService'
 import { getJournalEntries } from '../../services/journalService'
+import { toggleLike, getUserLikes } from '../../services/likeService'
 import EmptyState from '../../components/ui/EmptyState'
-import type { Profile, PrivacySettings, Movie, Event, Place, JournalEntry, SearchUserResult } from '../../types'
+import type { Profile, PrivacySettings, Movie, Event, Place, JournalEntry, SearchUserResult, EventType } from '../../types'
+
+const TYPE_LABELS: Record<EventType, { label: string; color: string }> = {
+  concert: { label: 'Concierto', color: 'bg-secondary' },
+  festival: { label: 'Festival', color: 'bg-primary' },
+  match: { label: 'Partido', color: 'bg-success' },
+  sports: { label: 'Deportes', color: 'bg-success' },
+  gastro: { label: 'Gastronomía', color: 'bg-warning' },
+  tech: { label: 'Tecnología', color: 'bg-blue-500' },
+  art: { label: 'Arte', color: 'bg-pink-500' },
+  theater: { label: 'Teatro', color: 'bg-purple-500' },
+  networking: { label: 'Networking', color: 'bg-cyan-500' },
+  other: { label: 'Otro', color: 'bg-text-muted' },
+}
+
+const MONTHS_SHORT = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 
 export default function PublicProfilePage() {
   const { username } = useParams<{ username: string }>()
@@ -28,6 +44,9 @@ export default function PublicProfilePage() {
   const [events, setEvents] = useState<Event[]>([])
   const [places, setPlaces] = useState<Place[]>([])
   const [journal, setJournal] = useState<JournalEntry[]>([])
+
+  const [likedEventIds, setLikedEventIds] = useState<Set<string>>(new Set())
+  const [likedPlaceIds, setLikedPlaceIds] = useState<Set<string>>(new Set())
 
   const [followersList, setFollowersList] = useState<SearchUserResult[]>([])
   const [followingList, setFollowingList] = useState<SearchUserResult[]>([])
@@ -71,8 +90,30 @@ export default function PublicProfilePage() {
     if (ps?.show_journal === true) {
       promises.push(getJournalEntries(p.id).then(setJournal).catch(() => {}))
     }
+    if (user) {
+      promises.push(getUserLikes('event').then(setLikedEventIds).catch(() => {}))
+      promises.push(getUserLikes('place').then(setLikedPlaceIds).catch(() => {}))
+    }
     await Promise.all(promises)
     setLoading(false)
+  }
+
+  async function handleLikeEvent(eventId: string) {
+    if (!user) return
+    try {
+      const liked = await toggleLike('event', eventId)
+      setLikedEventIds((prev) => { const next = new Set(prev); liked ? next.add(eventId) : next.delete(eventId); return next })
+      setEvents((prev) => prev.map((e) => e.id === eventId ? { ...e, likes_count: (e.likes_count ?? 0) + (liked ? 1 : -1) } : e))
+    } catch { toast('Error', 'error') }
+  }
+
+  async function handleLikePlace(placeId: string) {
+    if (!user) return
+    try {
+      const liked = await toggleLike('place', placeId)
+      setLikedPlaceIds((prev) => { const next = new Set(prev); liked ? next.add(placeId) : next.delete(placeId); return next })
+      setPlaces((prev) => prev.map((p) => p.id === placeId ? { ...p, likes_count: (p.likes_count ?? 0) + (liked ? 1 : -1) } : p))
+    } catch { toast('Error', 'error') }
   }
 
   async function handleFollow() {
@@ -220,17 +261,28 @@ export default function PublicProfilePage() {
           </div>
 
           {activeTab === 'movies' && privacy?.show_movies !== false && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {movies.map((m) => (
-                <div key={m.id} className="bg-surface border border-border rounded-xl overflow-hidden">
-                  {m.poster_url && <img src={m.poster_url} alt={m.title} className="w-full h-40 object-cover" />}
+                <div key={m.id} className="bg-surface border border-border rounded-2xl overflow-hidden group hover:border-primary/30 transition-colors">
+                  <div className="relative h-44 bg-bg overflow-hidden">
+                    {m.poster_url ? (
+                      <img src={m.poster_url} alt={m.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center">
+                        <Film size={40} className="text-text-muted/30" />
+                      </div>
+                    )}
+                    <span className={`absolute top-3 left-3 ${m.status === 'completed' ? 'bg-success' : m.status === 'watching' ? 'bg-warning' : 'bg-text-muted'} text-white text-xs font-semibold px-2.5 py-1 rounded-lg`}>
+                      {m.status === 'completed' ? 'Vista' : m.status === 'watching' ? 'Viendo' : 'Por ver'}
+                    </span>
+                  </div>
                   <div className="p-4">
-                    <p className="text-sm font-medium">{m.title}</p>
-                    <p className="text-xs text-text-muted">{m.media_type === 'movie' ? 'Película' : 'Serie'} · {m.status === 'completed' ? 'Vista' : m.status === 'watching' ? 'Viendo' : 'Por ver'}</p>
+                    <h3 className="text-sm font-semibold truncate">{m.title}</h3>
+                    <p className="text-xs text-text-muted mt-0.5">{m.media_type === 'movie' ? 'Película' : 'Serie'}</p>
                     {m.rating && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star size={12} className="text-warning fill-warning" />
-                        <span className="text-xs text-text-muted">{m.rating}/10</span>
+                      <div className="flex items-center gap-1 mt-2">
+                        <Star size={13} className="text-warning fill-warning" />
+                        <span className="text-xs font-medium">{m.rating}/10</span>
                       </div>
                     )}
                   </div>
@@ -241,37 +293,99 @@ export default function PublicProfilePage() {
           )}
 
           {activeTab === 'events' && privacy?.show_events !== false && (
-            <div className="space-y-3">
-              {events.map((e) => (
-                <div key={e.id} className="bg-surface border border-border rounded-xl px-5 py-4 flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${e.type === 'concert' ? 'bg-secondary/10' : 'bg-success/10'}`}>
-                    {e.type === 'concert' ? <Music size={18} className="text-secondary" /> : <Trophy size={18} className="text-success" />}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {events.map((event) => {
+                const [, m, d] = event.event_date.split('-')
+                const typeInfo = TYPE_LABELS[event.type] ?? TYPE_LABELS.other
+                const isLiked = likedEventIds.has(event.id)
+                return (
+                  <div key={event.id} className="bg-surface border border-border rounded-2xl overflow-hidden group hover:border-primary/30 transition-colors">
+                    <div className="relative h-44 bg-bg overflow-hidden">
+                      {event.drive_cover ? (
+                        <img src={event.drive_cover} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                          <CalendarDays size={40} className="text-text-muted/30" />
+                        </div>
+                      )}
+                      <span className={`absolute top-3 left-3 ${typeInfo.color} text-white text-xs font-semibold px-2.5 py-1 rounded-lg`}>
+                        {typeInfo.label}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="text-center shrink-0 bg-bg rounded-xl px-3 py-2">
+                          <p className="text-lg font-bold leading-none">{parseInt(d)}</p>
+                          <p className="text-[10px] font-semibold text-primary">{MONTHS_SHORT[parseInt(m) - 1]}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold truncate">{event.title}</h3>
+                          <div className="flex items-center gap-1 text-xs text-text-muted mt-0.5">
+                            <MapPin size={11} />
+                            <span className="truncate">{event.venue}, {event.city}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                        <button onClick={() => handleLikeEvent(event.id)}
+                          className={`flex items-center gap-1.5 text-sm transition-colors ${isLiked ? 'text-error' : 'text-text-muted hover:text-error'}`}>
+                          <Heart size={16} className={isLiked ? 'fill-error' : ''} />
+                          <span className="text-xs font-medium">{event.likes_count ?? 0}</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{e.title}</p>
-                    <p className="text-xs text-text-muted">{e.event_date} · {e.venue}, {e.city}</p>
-                  </div>
-                </div>
-              ))}
-              {events.length === 0 && <p className="text-sm text-text-muted text-center py-8">Sin eventos</p>}
+                )
+              })}
+              {events.length === 0 && <p className="text-sm text-text-muted col-span-full text-center py-8">Sin eventos</p>}
             </div>
           )}
 
           {activeTab === 'places' && privacy?.show_places !== false && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {places.map((p) => (
-                <div key={p.id} className="bg-surface border border-border rounded-xl p-5">
-                  <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-text-muted">{p.city}, {p.country}</p>
-                  {p.rating && (
-                    <div className="flex gap-0.5 mt-2">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Star key={n} size={12} className={n <= p.rating! ? 'text-warning fill-warning' : 'text-text-muted/20'} />
-                      ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {places.map((place) => {
+                const isLiked = likedPlaceIds.has(place.id)
+                return (
+                  <div key={place.id} className="bg-surface border border-border rounded-2xl overflow-hidden group hover:border-primary/30 transition-colors">
+                    <div className="relative h-44 bg-bg overflow-hidden">
+                      {place.drive_image ? (
+                        <img src={place.drive_image} alt={place.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-success/20 to-primary/20 flex items-center justify-center">
+                          <MapPin size={40} className="text-text-muted/30" />
+                        </div>
+                      )}
+                      <span className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
+                        {place.country}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="p-4">
+                      <h3 className="text-sm font-semibold">{place.name}</h3>
+                      <div className="flex items-center gap-1 text-xs text-text-muted mt-0.5">
+                        <MapPin size={11} />
+                        <span>{place.city}, {place.country}</span>
+                      </div>
+                      {place.rating && (
+                        <div className="flex gap-0.5 mt-2">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star key={n} size={13} className={n <= place.rating! ? 'text-warning fill-warning' : 'text-text-muted/20'} />
+                          ))}
+                        </div>
+                      )}
+                      {place.visited_at && (
+                        <p className="text-[11px] text-text-muted mt-1">{new Date(place.visited_at + 'T12:00:00').toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })}</p>
+                      )}
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                        <button onClick={() => handleLikePlace(place.id)}
+                          className={`flex items-center gap-1.5 text-sm transition-colors ${isLiked ? 'text-error' : 'text-text-muted hover:text-error'}`}>
+                          <Heart size={16} className={isLiked ? 'fill-error' : ''} />
+                          <span className="text-xs font-medium">{place.likes_count ?? 0}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
               {places.length === 0 && <p className="text-sm text-text-muted col-span-full text-center py-8">Sin lugares</p>}
             </div>
           )}

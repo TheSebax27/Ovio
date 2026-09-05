@@ -109,7 +109,7 @@ export default function EventsPage() {
           <p className="text-sm text-text-muted">Descubre y gestiona todos tus eventos</p>
         </div>
         <div className="flex gap-2">
-          <ExportButton data={events.map((e) => ({ Título: e.title, Tipo: TYPE_LABELS[e.type]?.label ?? e.type, Fecha: e.event_date, Lugar: e.venue, Ciudad: e.city, Likes: e.likes_count }))} fileName="eventos" />
+          <ExportButton data={events.map((e) => ({ Título: e.title, Tipo: TYPE_LABELS[e.type]?.label ?? e.type, Fecha: e.event_date, Lugar: e.venue, Ciudad: e.city, Likes: e.likes_count ?? 0 }))} fileName="eventos" />
           <button onClick={() => { setEditing(null); setModalOpen(true) }}
             className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
             <Plus size={18} /> Nuevo evento
@@ -204,7 +204,7 @@ export default function EventsPage() {
                     <button onClick={() => handleLike(event.id)}
                       className={`flex items-center gap-1.5 text-sm transition-colors ${isLiked ? 'text-error' : 'text-text-muted hover:text-error'}`}>
                       <Heart size={16} className={isLiked ? 'fill-error' : ''} />
-                      <span className="text-xs font-medium">{event.likes_count}</span>
+                      <span className="text-xs font-medium">{event.likes_count ?? 0}</span>
                     </button>
                   </div>
                 </div>
